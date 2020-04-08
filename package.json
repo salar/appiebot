@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "request": "^2.88.2",
+    "request-promise": "^4.2.5",
     "telegraf": "^3.37.0"
   }
 }

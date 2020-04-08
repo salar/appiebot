@@ -1,4 +1,4 @@
-const request = require("request")
+const request = require("request-promise")
 
 // let data = require("./example-data/ah-2.json")
 // let data = require("./example-data/ah-all-full.json")
@@ -42,15 +42,30 @@ function prettyJoin(s)
     return s.length > 1 ? s.slice(0, s.length - 1).join(", ") + " en " + s[s.length - 1] : s[0]
 }
 
-function presentAvailability(slots)
+exports.presentAvailability = function presentAvailability(slots)
 {
     return slots.length
-        ? "Nieuwe slots beschikbaar op " + prettyJoin(slots.map(prettyPrintDate))
+        ? "Nieuwe slots beschikbaar op " + prettyJoin(slots.map(prettyPrintDate)) + "!"
         : "Geen slots beschikbaar."
 }
 
 // process.stdout.write("Hello!")
 // process.stdout.write(presentAvailability(processAHResult(data)))
 
-let url = "https://www.ah.nl/servicxe/rest/delegate?url=%2Fkies-moment%2Fbezorgen%2F1052AE"
-request({ url: url, json: true }, processResult)
+// let url = "https://www.ah.nl/servicxe/rest/delegate?url=%2Fkies-moment%2Fbezorgen%2F1052AE"
+// request({ url: url, json: true }, processResult)
+
+exports.getAvailability = async function getAvailability(postcode)
+{
+    try
+    {
+        console.log("AH.getAvailability for ", postcode)
+        const url = "https://www.ah.nl/service/rest/delegate?url=%2Fkies-moment%2Fbezorgen%2F" + postcode
+        const result = await request({ url: url, json: true})
+        return processAHResult(result)
+    }
+    catch (error)
+    {
+        console.log("AH.getAvailability failed", error)
+    }
+}

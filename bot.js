@@ -1,16 +1,19 @@
+const ah = require("./ah-parse")
+
 const Telegraf = require('telegraf')
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 let trackers = {}
-const pollIntervalMin = 5 // in seconds
-const pollIntervalMax = 10 // in seconds
+const pollIntervalMin = 300 // in seconds
+const pollIntervalMax = 500 // in seconds
 
 bot.use((ctx, next) => {
-    console.log('Message from user', ctx.chat, 'recieved:', ctx.message.text)
+    console.log('Message from user', ctx.chat, 'text:', ctx.message.text)
     return next(ctx)
 })
 
 bot.start((ctx) => ctx.reply('Hallo! Welke postcode wil je tracken?'))
+bot.command("stop", (ctx) => removeTracking(ctx.chat.id))
 
 bot.on("text", function (ctx)
 {
@@ -40,7 +43,7 @@ function normalizePostcode(input)
 
 function newTracker ()
 {
-    return { chats: [] }
+    return { chats: [], prevChecked: null, prevSlots: [] }
 }
 
 function trackPostcode(postcode, chatId)
@@ -52,10 +55,38 @@ function trackPostcode(postcode, chatId)
     tracker.chats.push(chatId)
 }
 
-function pollPostcode (postcode)
+function removeTracking(chatId)
 {
-    console.log("Polling " + postcode)
-    trackers[postcode].chats.forEach(c => bot.telegram.sendMessage(c, "Finished polling for you..." + postcode))
+    Object.keys(trackers).forEach(key => removeItem(trackers[key].chats, chatId))
+    bot.telegram.sendMessage(chatId, "Notificaties gestopt.")
+}
+
+function removeItem(array, item)
+{
+    const index = array.indexOf(item)
+    index != -1 && array.splice(index, 1)
+}
+
+async function pollPostcode (postcode)
+{
+    const tracker = trackers[postcode]
+    const chats = tracker.chats
+    if (chats.length)
+    {
+        try
+        {
+            const results = await ah.getAvailability(postcode)
+            console.log("Results received: ", results)
+            tracker.prevChecked = new Date();
+            if (results.length && (results+"")!==(tracker.prevSlots+""))
+                chats.forEach(c => bot.telegram.sendMessage(c, ah.presentAvailability(results)))
+            tracker.prevSlots = results
+        }
+        catch (error)
+        {
+            console.log("pollPostcode error: ", error)
+        }
+    }
 }
 
 function poll ()
