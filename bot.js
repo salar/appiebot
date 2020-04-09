@@ -4,8 +4,8 @@ const Telegraf = require('telegraf')
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 let trackers = {}
-const pollIntervalMin = 300 // in seconds
-const pollIntervalMax = 500 // in seconds
+const pollIntervalMin = 240 // in seconds
+const pollIntervalMax = 360 // in seconds
 
 bot.use((ctx, next) => {
     console.log('Message from user', ctx.chat, 'text:', ctx.message.text)

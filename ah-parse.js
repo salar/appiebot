@@ -13,9 +13,16 @@ function isDateAvailable(slot)
 
 function processAHResult(result)
 {
-    let slots = result._embedded.lanes[3]._embedded.items[0]._embedded.deliveryDates
-    let available = slots.filter(isDateAvailable)
-    return available.map(s => s.date)
+    try
+    {
+        let slots = result._embedded.lanes[3]._embedded.items[0]._embedded.deliveryDates
+        let available = slots.filter(isDateAvailable)
+        return available.map(s => s.date)
+    }
+    catch (error)
+    {
+        console.log("AH.processAHResult failed", result)
+    }
 }
 
 function processResult(error, response, body)
