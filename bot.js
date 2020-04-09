@@ -1,11 +1,34 @@
 const ah = require("./ah-parse")
-
-const Telegraf = require('telegraf')
+const fs = require("fs")
+const Telegraf = require("telegraf")
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
-let trackers = {}
 const pollIntervalMin = 240 // in seconds
 const pollIntervalMax = 360 // in seconds
+const stateFile = "state.json"
+
+let trackers = {}
+
+function loadState ()
+{
+    fs.readFile(stateFile, (err, data) => {
+        if (err) return
+        try
+        {
+            const json = JSON.parse(data)
+            if (json && json.trackers)
+                trackers = json.trackers
+            console.log("Loaded existing state", json)
+        }
+        catch (e) {}
+    });
+}
+
+function saveState ()
+{
+    const json = JSON.stringify({ trackers: trackers }, null, 2);
+    fs.writeFile(stateFile, json, (err) => console.log("saveState", !!err ? "error" : "success", json));
+}
 
 bot.use((ctx, next) => {
     console.log('Message from user', ctx.chat, 'text:', ctx.message.text)
@@ -53,11 +76,13 @@ function trackPostcode(postcode, chatId)
     
     let tracker = trackers[postcode]
     tracker.chats.push(chatId)
+    saveState()
 }
 
 function removeTracking(chatId)
 {
     Object.keys(trackers).forEach(key => removeItem(trackers[key].chats, chatId))
+    saveState()
     bot.telegram.sendMessage(chatId, "Notificaties gestopt.")
 }
 
@@ -79,8 +104,9 @@ async function pollPostcode (postcode)
             console.log("Results received: ", results)
             tracker.prevChecked = new Date();
             if (results.length && (results+"")!==(tracker.prevSlots+""))
-                chats.forEach(c => bot.telegram.sendMessage(c, ah.presentAvailability(results)))
+                chats.forEach(c => bot.telegram.sendMessage(c, ah.presentAvailability(results, tracker.prevSlots.length)))
             tracker.prevSlots = results
+            saveState()
         }
         catch (error)
         {
@@ -98,5 +124,6 @@ function poll ()
     setTimeout(poll, nextPoll * 1e3)
 }
 
+loadState()
 bot.launch()
 poll()
