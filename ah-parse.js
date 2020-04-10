@@ -45,7 +45,7 @@ exports.presentAvailability = function presentAvailability(slots, prevSlotsLen)
     else if (prevSlotsLen === 0)
         return "Nieuwe slots beschikbaar op " + avail + "!"
     else
-        return "Nu ook op " + avail
+        return "Nu op " + avail
 }
 
 exports.getAvailability = async function getAvailability(postcode)
