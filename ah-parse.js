@@ -19,7 +19,7 @@ function processAHResult(result)
     }
     catch (error)
     {
-        console.log("AH.processAHResult failed", result)
+        console.log(new Date, "AH.processAHResult failed", result)
     }
 }
 
@@ -52,13 +52,12 @@ exports.getAvailability = async function getAvailability(postcode)
 {
     try
     {
-        console.log("AH.getAvailability for ", postcode)
         const url = "https://www.ah.nl/service/rest/delegate?url=%2Fkies-moment%2Fbezorgen%2F" + postcode
         const result = await request({ url: url, json: true})
         return processAHResult(result)
     }
     catch (error)
     {
-        console.log("AH.getAvailability failed", error)
+        console.log(new Date, "AH.getAvailability failed for", postcode, error)
     }
 }

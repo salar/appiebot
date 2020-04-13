@@ -18,24 +18,26 @@ function loadState ()
             const json = JSON.parse(data)
             if (json && json.trackers)
                 trackers = json.trackers
-            console.log("Loaded existing state", json)
+            console.log(new Date, "Loaded state", json)
         }
-        catch (e) {}
+        catch (e) {
+            console.error(new Date, "Failed loading state", e)
+        }
     });
 }
 
 function saveState ()
 {
-    const json = JSON.stringify({ trackers: trackers }, null, 2);
-    fs.writeFile(stateFile, json, (err) => console.log("saveState", !!err ? "error" : "success", json));
+    const json = JSON.stringify({ trackers: trackers }, null, 2)
+    fs.writeFile(stateFile, json, (err) => err && console.log(new Date, "saveState failed", json, err))
 }
 
 bot.use((ctx, next) => {
-    console.log('Message from user', ctx.chat, 'text:', ctx.message.text)
+    console.log(new Date, "Message from user", ctx.chat, "text:", ctx.message.text)
     return next(ctx)
 })
 
-bot.start((ctx) => ctx.reply('Hallo! Welke postcode wil je tracken?'))
+bot.start((ctx) => ctx.reply("Hallo! Welke postcode wil je tracken?"))
 bot.command("stop", (ctx) => removeTracking(ctx.chat.id))
 
 bot.on("text", function (ctx)
@@ -52,9 +54,6 @@ bot.on("text", function (ctx)
         ctx.reply("Dit is geen postcode?")
     }
 })
-
-// TODO: add /stop handler
-
 function normalizePostcode(input)
 {
     let postcode = input.match(/(\d{4})\s?([A-Za-z]{2})/)
@@ -83,7 +82,7 @@ function removeTracking(chatId)
 {
     Object.keys(trackers).forEach(key => removeItem(trackers[key].chats, chatId))
     saveState()
-    bot.telegram.sendMessage(chatId, "Notificaties gestopt.")
+    notify(chatId, "Notificaties gestopt.")
 }
 
 function removeItem(array, item)
@@ -101,18 +100,24 @@ async function pollPostcode (postcode)
         try
         {
             const results = await ah.getAvailability(postcode)
-            console.log("Results received: ", results)
+            console.log(new Date, "Results received for ", postcode, results)
             tracker.prevChecked = new Date();
             if (results.length && (results+"")!==(tracker.prevSlots+""))
-                chats.forEach(c => bot.telegram.sendMessage(c, ah.presentAvailability(results, tracker.prevSlots.length)))
+                chats.forEach(c => notify(c, ah.presentAvailability(results, tracker.prevSlots.length)))
             tracker.prevSlots = results
             saveState()
         }
         catch (error)
         {
-            console.log("pollPostcode error: ", error)
+            console.log(new Date, "pollPostcode error", error)
         }
     }
+}
+
+function notify (user, message)
+{
+    bot.telegram.sendMessage(user, message)
+    console.log(new Date, "Message to", user, message)
 }
 
 function poll ()
@@ -120,7 +125,7 @@ function poll ()
     Object.keys(trackers).forEach(key => pollPostcode(key))
 
     let nextPoll = Math.round(Math.random() * (pollIntervalMax - pollIntervalMin)) + pollIntervalMin
-    console.log("Polling again in " + nextPoll)    
+    console.log(new Date, "Polling again in", nextPoll)
     setTimeout(poll, nextPoll * 1e3)
 }
 
